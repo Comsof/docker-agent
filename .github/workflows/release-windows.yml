@@ -47,4 +47,4 @@ jobs:
       - name: Build and push container
         run: |
           docker compose --env-file=env.props --file=build-windows.yaml build --pull jdk17
-          docker compose --env-file=env.props --file=build-windows.yaml push
+          docker compose --env-file=env.props --file=build-windows.yaml push jdk17
