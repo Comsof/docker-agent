@@ -108,8 +108,10 @@ RUN New-Item -Type Directory $('{0}/.jenkins' -f $env:AGENT_ROOT) | Out-Null ; `
 RUN git config --system core.longpaths true ; `
     Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem' -Name LongPathsEnabled -type DWord -Value 1
 
-VOLUME "${AGENT_ROOT}"/.jenkins
-VOLUME "${AGENT_WORKDIR}"
+# Volume definitions are not supported on ECS Fargate for Windows
+# VOLUME "${AGENT_ROOT}"/.jenkins
+# VOLUME "${AGENT_WORKDIR}"
+
 WORKDIR "${AGENT_ROOT}"
 ENV USER=${user}
 LABEL `
