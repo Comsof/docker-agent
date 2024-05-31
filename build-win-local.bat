@@ -7,4 +7,4 @@
 @set WINDOWS_VERSION_TAG=ltsc2022
 @set BUILD_NUMBER=0
 
-docker-compose --env-file=env.props --file=build-windows.yaml build --pull jdk17
+docker compose --env-file=env.props --file=build-windows.yaml build --pull jdk17
