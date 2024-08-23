@@ -2,8 +2,7 @@ group "linux" {
   targets = [
     "agent_archlinux_jdk11",
     "alpine",
-    "debian",
-    "debian_jdk21_preview"
+    "debian"
   ]
 }
 
@@ -15,8 +14,7 @@ group "linux-agent-only" {
     "agent_alpine_jdk21",
     "agent_debian_jdk11",
     "agent_debian_jdk17",
-    "agent_debian_jdk21",
-    "agent_debian_jdk21_preview"
+    "agent_debian_jdk21"
   ]
 }
 
@@ -27,8 +25,7 @@ group "linux-inbound-agent-only" {
     "inbound-agent_alpine_jdk21",
     "inbound-agent_debian_jdk11",
     "inbound-agent_debian_jdk17",
-    "inbound-agent_debian_jdk21",
-    "inbound-agent_debian_jdk21_preview"
+    "inbound-agent_debian_jdk21"
   ]
 }
 
@@ -42,8 +39,7 @@ group "linux-arm64" {
 group "linux-arm32" {
   targets = [
     "debian_jdk11",
-    "debian_jdk17",
-    "debian_jdk21_preview"
+    "debian_jdk17"
   ]
 }
 
@@ -61,7 +57,7 @@ group "linux-ppc64le" {
 }
 
 variable "REMOTING_VERSION" {
-  default = "3248.v65ecb_254c298"
+  default = "3261.v9c670a_4748a_9"
 }
 
 variable "REGISTRY" {
@@ -89,7 +85,7 @@ variable "ON_TAG" {
 }
 
 variable "ALPINE_FULL_TAG" {
-  default = "3.20.0"
+  default = "3.20.2"
 }
 
 variable "ALPINE_SHORT_TAG" {
@@ -97,23 +93,19 @@ variable "ALPINE_SHORT_TAG" {
 }
 
 variable "DEBIAN_RELEASE" {
-  default = "bookworm-20240513"
+  default = "bookworm-20240812"
 }
 
 variable "JAVA11_VERSION" {
-  default = "11.0.23_9"
+  default = "11.0.24_8"
 }
 
 variable "JAVA17_VERSION" {
-  default = "17.0.11_9"
+  default = "17.0.12_7"
 }
 
 variable "JAVA21_VERSION" {
-  default = "21.0.3_9"
-}
-
-variable "JAVA21_PREVIEW_VERSION" {
-  default = "21.0.1+12"
+  default = "21.0.4_7"
 }
 
 function "orgrepo" {
@@ -138,7 +130,7 @@ function "javaversion" {
     ? "${JAVA11_VERSION}"
     : (equal(17, jdk)
       ? "${JAVA17_VERSION}"
-      : "${JAVA21_VERSION}"))
+  : "${JAVA21_VERSION}"))
 }
 
 # Return an array of Alpine platforms to use depending on the jdk passed as parameter
@@ -146,7 +138,7 @@ function "alpine_platforms" {
   params = [jdk]
   result = (equal(21, jdk)
     ? ["linux/amd64", "linux/arm64"]
-    : ["linux/amd64"])
+  : ["linux/amd64"])
 }
 
 # Return an array of Debian platforms to use depending on the jdk passed as parameter
@@ -156,13 +148,13 @@ function "debian_platforms" {
     ? ["linux/amd64", "linux/arm64", "linux/ppc64le", "linux/arm/v7", "linux/s390x"]
     : (equal(17, jdk)
       ? ["linux/amd64", "linux/arm64", "linux/ppc64le", "linux/arm/v7"]
-      : ["linux/amd64", "linux/arm64", "linux/ppc64le", "linux/s390x"]))
+  : ["linux/amd64", "linux/arm64", "linux/ppc64le", "linux/s390x"]))
 }
 
 target "alpine" {
   matrix = {
     type = ["agent", "inbound-agent"]
-    jdk = [11, 17, 21]
+    jdk  = [11, 17, 21]
   }
   name       = "${type}_alpine_jdk${jdk}"
   target     = type
@@ -196,7 +188,7 @@ target "alpine" {
 target "debian" {
   matrix = {
     type = ["agent", "inbound-agent"]
-    jdk = [11, 17, 21]
+    jdk  = [11, 17, 21]
   }
   name       = "${type}_debian_${jdk}"
   target     = type
@@ -240,27 +232,4 @@ target "agent_archlinux_jdk11" {
     "${REGISTRY}/${orgrepo("agent")}:latest-archlinux-jdk11",
   ]
   platforms = ["linux/amd64"]
-}
-
-target "debian_jdk21_preview" {
-  matrix = {
-    type = ["agent", "inbound-agent"]
-  }
-  name       = "${type}_debian_jdk21_preview"
-  target     = type
-  dockerfile = "debian/preview/Dockerfile"
-  context    = "."
-  args = {
-    JAVA_VERSION   = JAVA21_PREVIEW_VERSION
-    VERSION        = REMOTING_VERSION
-    DEBIAN_RELEASE = DEBIAN_RELEASE
-  }
-  tags = [
-    equal(ON_TAG, "true") ? "${REGISTRY}/${orgrepo(type)}:${REMOTING_VERSION}-${BUILD_NUMBER}-jdk21-preview" : "",
-    "${REGISTRY}/${orgrepo(type)}:bookworm-jdk21-preview",
-    "${REGISTRY}/${orgrepo(type)}:jdk21-preview",
-    "${REGISTRY}/${orgrepo(type)}:latest-bookworm-jdk21-preview",
-    "${REGISTRY}/${orgrepo(type)}:latest-jdk21-preview",
-  ]
-  platforms = ["linux/arm/v7"]
 }

@@ -23,9 +23,8 @@
 #  THE SOFTWARE.
 
 ARG WINDOWS_VERSION_TAG=ltsc2019
-ARG WINDOWS_VERSION_DIGEST # Empty by default
-ARG TOOLS_WINDOWS_VERSION # Empty (only used on nanoserver)
-FROM mcr.microsoft.com/windows/servercore:"${WINDOWS_VERSION_TAG}${WINDOWS_VERSION_DIGEST}" AS jdk-core
+ARG TOOLS_WINDOWS_VERSION=1809
+FROM mcr.microsoft.com/windows/servercore:"${WINDOWS_VERSION_TAG}" AS jdk-core
 
 # $ProgressPreference: https://github.com/PowerShell/PowerShell/issues/2138#issuecomment-251261324
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
@@ -40,7 +39,7 @@ RUN New-Item -ItemType Directory -Path C:\temp | Out-Null ; `
     Remove-Item -Path C:\temp -Recurse | Out-Null
 
 ## Agent image target
-FROM mcr.microsoft.com/windows/servercore:"${WINDOWS_VERSION_TAG}${WINDOWS_VERSION_DIGEST}" AS agent
+FROM mcr.microsoft.com/windows/servercore:"${WINDOWS_VERSION_TAG}" AS agent
 
 ARG JAVA_HOME="C:\openjdk-17"
 ENV JAVA_HOME=${JAVA_HOME}
@@ -49,7 +48,7 @@ COPY --from=jdk-core $JAVA_HOME $JAVA_HOME
 
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 
-ARG GIT_VERSION=2.45.1
+ARG GIT_VERSION=2.46.0
 ARG GIT_PATCH_VERSION=1
 RUN [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 ; `
     # The patch "windows.1" always have a different URL than the subsequent patch (ZIP filename is different)
@@ -83,9 +82,9 @@ ARG AGENT_FILENAME=agent.jar
 ARG AGENT_HASH_FILENAME=$AGENT_FILENAME.sha1
 
 RUN net accounts /maxpwage:unlimited ; `
-    net user "$env:user" /add /expire:never /passwordreq:no ; `
-    net localgroup Administrators /add $env:user ; `
-    Set-LocalUser -Name $env:user -PasswordNeverExpires 1; `
+    net user "$env:USER" /add /expire:never /passwordreq:no ; `
+    net localgroup Administrators /add $env:USER ; `
+    Set-LocalUser -Name $env:USER -PasswordNeverExpires 1; `
     New-Item -ItemType Directory -Path C:/ProgramData/Jenkins | Out-Null
 
 ARG AGENT_ROOT=C:/Users/$user
@@ -94,7 +93,7 @@ ARG AGENT_WORKDIR=${AGENT_ROOT}/Work
 ENV AGENT_WORKDIR=${AGENT_WORKDIR}
 
 # Get the Agent from the Jenkins Artifacts Repository
-ARG VERSION=3248.v65ecb_254c298
+ARG VERSION=3261.v9c670a_4748a_9
 RUN [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 ; `
     Invoke-WebRequest $('https://repo.jenkins-ci.org/public/org/jenkins-ci/main/remoting/{0}/remoting-{0}.jar' -f $env:VERSION) -OutFile $(Join-Path C:/ProgramData/Jenkins $env:AGENT_FILENAME) -UseBasicParsing ; `
     Invoke-WebRequest $('https://repo.jenkins-ci.org/public/org/jenkins-ci/main/remoting/{0}/remoting-{0}.jar.sha1' -f $env:VERSION) -OutFile (Join-Path C:/ProgramData/Jenkins $env:AGENT_HASH_FILENAME) -UseBasicParsing ; `
@@ -113,7 +112,7 @@ RUN git config --global core.longpaths true
 # VOLUME "${AGENT_WORKDIR}"
 
 WORKDIR "${AGENT_ROOT}"
-ENV user=${user}
+ENV USER=${user}
 LABEL `
     org.opencontainers.image.vendor="Jenkins project" `
     org.opencontainers.image.title="Official Jenkins Agent Base Docker image" `

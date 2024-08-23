@@ -19,7 +19,7 @@
 #  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 #  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 #  THE SOFTWARE.
-ARG DEBIAN_RELEASE=bookworm-20240513
+ARG DEBIAN_RELEASE=bookworm-20240812
 FROM debian:"${DEBIAN_RELEASE}"-slim as jre-build
 
 SHELL ["/bin/bash", "-e", "-u", "-o", "pipefail", "-c"]
@@ -31,7 +31,7 @@ ARG TARGETPLATFORM
 COPY adoptium-get-jdk-link.sh /usr/bin/local/adoptium-get-jdk-link.sh
 COPY adoptium-install-jdk.sh /usr/bin/local/adoptium-install-jdk.sh
 
-ARG JAVA_VERSION=17.0.11_9
+ARG JAVA_VERSION=17.0.12_7
 # hadolint ignore=DL3008
 RUN set -x; apt-get update \
   && apt-get install --no-install-recommends -y \
@@ -98,7 +98,7 @@ RUN apt-get update \
   && apt-get clean \
   && rm -rf /tmp/* /var/cache/* /var/lib/apt/lists/*
 
-ARG VERSION=3248.v65ecb_254c298
+ARG VERSION=3261.v9c670a_4748a_9
 ADD --chown="${user}":"${group}" "https://repo.jenkins-ci.org/public/org/jenkins-ci/main/remoting/${VERSION}/remoting-${VERSION}.jar" /usr/share/jenkins/agent.jar
 RUN chmod 0644 /usr/share/jenkins/agent.jar \
   && ln -sf /usr/share/jenkins/agent.jar /usr/share/jenkins/slave.jar
@@ -116,7 +116,7 @@ RUN mkdir -p /home/"${user}"/.jenkins && mkdir -p "${AGENT_WORKDIR}"
 VOLUME /home/"${user}"/.jenkins
 VOLUME "${AGENT_WORKDIR}"
 WORKDIR /home/"${user}"
-ENV user=${user}
+ENV USER=${user}
 LABEL \
   org.opencontainers.image.vendor="Jenkins project" \
   org.opencontainers.image.title="Official Jenkins Agent Base Docker image" \
@@ -143,7 +143,7 @@ LABEL \
   org.opencontainers.image.description="This is an image for Jenkins agents using TCP or WebSockets to establish inbound connection to the Jenkins controller" \
   org.opencontainers.image.version="${VERSION}" \
   org.opencontainers.image.url="https://www.jenkins.io/" \
-  org.opencontainers.image.source="https://github.com/jenkinsci/docker-agent-inbound" \
+  org.opencontainers.image.source="https://github.com/jenkinsci/docker-agent" \
   org.opencontainers.image.licenses="MIT"
 
 ENTRYPOINT ["/usr/local/bin/jenkins-agent"]

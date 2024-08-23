@@ -20,7 +20,7 @@
 #  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 #  THE SOFTWARE.
 
-FROM archlinux:base-20240101.0.204074 AS jre-build
+FROM archlinux:base-20240811.0.253648 AS jre-build
 
 # This Build ARG is populated by Docker
 # Ref. https://docs.docker.com/engine/reference/builder/#automatic-platform-args-in-the-global-scope
@@ -52,7 +52,7 @@ RUN jlink \
   --compress=2 \
   --output /javaruntime
 
-FROM archlinux:base-20240101.0.204074
+FROM archlinux:base-20240811.0.253648
 
 ARG user=jenkins
 ARG group=jenkins
@@ -67,7 +67,7 @@ ENV TZ=Etc/UTC
 
 RUN pacman -Syu curl git git-lfs openssh tzdata --noconfirm
 
-ARG VERSION=3248.v65ecb_254c298
+ARG VERSION=3261.v9c670a_4748a_9
 ADD --chown="${user}":"${group}" "https://repo.jenkins-ci.org/public/org/jenkins-ci/main/remoting/${VERSION}/remoting-${VERSION}.jar" /usr/share/jenkins/agent.jar
 RUN chmod 0644 /usr/share/jenkins/agent.jar \
   && ln -sf /usr/share/jenkins/agent.jar /usr/share/jenkins/slave.jar
@@ -83,7 +83,7 @@ RUN mkdir /home/"${user}"/.jenkins && mkdir -p "${AGENT_WORKDIR}"
 VOLUME /home/"${user}"/.jenkins
 VOLUME "${AGENT_WORKDIR}"
 WORKDIR /home/"${user}"
-ENV user=${user}
+ENV USER=${user}
 LABEL \
     org.opencontainers.image.vendor="Jenkins project" \
     org.opencontainers.image.title="Official Jenkins Agent Base Docker image" \
