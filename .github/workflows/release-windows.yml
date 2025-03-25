@@ -12,7 +12,7 @@ on:
         description: 'Repo name of the ECR repository'
         required: true
         type: string
-        default: 'dev-jenkins/windows-agent'
+        default: 'jenkins/inbound-agent'
 
 permissions:
   id-token: write
@@ -40,7 +40,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::677600294012:role/github-action-role
+          role-to-assume: arn:aws:iam::794835664978:role/github-action-role
           aws-region: eu-west-1
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
