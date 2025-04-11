@@ -8,6 +8,11 @@ on:
         required: true
         type: string
         default: '677600294012.dkr.ecr.eu-west-1.amazonaws.com'
+      aws-account-id:
+        description: 'AWS Account ID'
+        required: true
+        type: string
+        default: '677600294012'
       docker-repo:
         description: 'Repo name of the ECR repository'
         required: true
@@ -35,12 +40,11 @@ jobs:
           echo '```json' >> $GITHUB_STEP_SUMMARY
           echo '${{ toJSON(inputs) }}' >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-      - name: Checkout
         uses: actions/checkout@v4
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-            role-to-assume: arn:aws:iam::${{ inputs['docker-org'].split('.')[0] }}:role/github-action-role
+            role-to-assume: arn:aws:iam::${{ inputs['aws-account-id'] }}:role/github-action-role
             aws-region: eu-west-1
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
