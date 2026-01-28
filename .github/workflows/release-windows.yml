@@ -1,23 +1,17 @@
 name: Release Windows Agent
 
+run-name: Release to ${{ inputs.environment }} by ${{ github.actor }} from ${{ github.ref_name }}
+
 on:
   workflow_dispatch:
     inputs:
-      docker-org:
-        description: 'Organization prefix of the ECR repository'
+      environment:
+        description: 'The environment where to push to image to (dev/prod)'
         required: true
-        type: string
-        default: '677600294012.dkr.ecr.eu-west-1.amazonaws.com'
-      aws-account-id:
-        description: 'AWS Account ID'
-        required: true
-        type: string
-        default: '677600294012'
-      docker-repo:
-        description: 'Repo name of the ECR repository'
-        required: true
-        type: string
-        default: 'jenkins/inbound-agent'
+        type: choice
+        options:
+          - development
+          - production
 
 permissions:
   id-token: write
@@ -27,12 +21,6 @@ jobs:
   release:
     name: Release
     runs-on: windows-latest
-    env:
-      BUILD_NUMBER: ${{ github.run_number }}
-      DOCKERHUB_ORGANISATION: ${{ inputs.docker-org }}
-      DOCKERHUB_REPO: ${{ inputs.docker-repo }}
-      WINDOWS_FLAVOR: windowsservercore
-      WINDOWS_VERSION_TAG: ltsc2022
     steps:
       - name: Inputs
         run: |
@@ -40,16 +28,63 @@ jobs:
           echo '```json' >> $GITHUB_STEP_SUMMARY
           echo '${{ toJSON(inputs) }}' >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-      - name: Checkout          
-        uses: actions/checkout@v4
+
+      - name: Resolve build context
+        shell: bash
+        run: |
+          if ${{ inputs.environment == 'development' }}; then
+            echo 'ecr_registry=677600294012.dkr.ecr.eu-west-1.amazonaws.com' >> $GITHUB_ENV
+            echo 'iam_role=arn:aws:iam::677600294012:role/github-action-role' >> $GITHUB_ENV
+          elif ${{ inputs.environment == 'production' }}; then
+            echo 'ecr_registry=794835664978.dkr.ecr.eu-west-1.amazonaws.com' >> $GITHUB_ENV
+            echo 'iam_role=arn:aws:iam::794835664978:role/github-action-role' >> $GITHUB_ENV
+          else
+            echo '::error::Unknown environment: ${{ inputs.environment }}'
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v6
+
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
-            role-to-assume: arn:aws:iam::${{ inputs['aws-account-id'] }}:role/github-action-role
-            aws-region: eu-west-1
+          role-to-assume: ${{ env.iam_role }}
+          aws-region: eu-west-1
+
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
+
       - name: Build and push container
-        run: |
-          docker compose --env-file=env.props --file=build-windows.yaml build --pull jdk21
-          docker compose --env-file=env.props --file=build-windows.yaml push jdk21
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
+          REGISTRY: ${{ env.ecr_registry }}
+          REGISTRY_ORG: jenkins
+          REGISTRY_REPO_INBOUND_AGENT: inbound-agent
+          ON_TAG: true
+          WINDOWS_VERSION_OVERRIDE: ltsc2022
+          WINDOWS_AGENT_TYPE_OVERRIDE: inbound-agent
+          REMOTING_VERSION: 3355.v388858a_47b_33
+        run: >
+          docker build -f windows/windowsservercore/Dockerfile
+          --build-arg JAVA_HOME="C:/openjdk-25"
+          --build-arg JAVA_VERSION="25.0.1+8"
+          --build-arg TOOLS_WINDOWS_VERSION="${{ env.WINDOWS_VERSION_OVERRIDE }}"
+          --build-arg VERSION="${{ env.REMOTING_VERSION }}"
+          --build-arg WINDOWS_VERSION_TAG="${{ env.WINDOWS_VERSION_OVERRIDE }}"
+          -t "${{ env.REGISTRY }}/${{ env.REGISTRY_ORG }}/${{ env.REGISTRY_REPO_INBOUND_AGENT }}:${{ env.REMOTING_VERSION }}-${{ env.BUILD_NUMBER }}-jdk25-windowsservercore-${{ env.WINDOWS_VERSION_OVERRIDE }}"
+          -t "${{ env.REGISTRY }}/${{ env.REGISTRY_ORG }}/${{ env.REGISTRY_REPO_INBOUND_AGENT }}:jdk25-windowsservercore-${{ env.WINDOWS_VERSION_OVERRIDE }}"
+          --pull
+          .
+          
+          docker push "${{ env.REGISTRY }}/${{ env.REGISTRY_ORG }}/${{ env.REGISTRY_REPO_INBOUND_AGENT }}:${{ env.REMOTING_VERSION }}-${{ env.BUILD_NUMBER }}-jdk25-windowsservercore-${{ env.WINDOWS_VERSION_OVERRIDE }}"
+          
+          docker push "${{ env.REGISTRY }}/${{ env.REGISTRY_ORG }}/${{ env.REGISTRY_REPO_INBOUND_AGENT }}:jdk25-windowsservercore-${{ env.WINDOWS_VERSION_OVERRIDE }}"
+
+#        run: >
+#           docker buildx bake
+#           --file docker-bake.hcl
+#           --file docker-bake.override.hcl
+#           --pull
+#           --push
+#           windowsservercore
